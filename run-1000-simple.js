@@ -88,6 +88,7 @@ class Simple1000Runner {
             const currentMonth = new Date().toISOString().slice(0, 7) + '-01';
             console.log(`🔍 Checking existing PLZs in database for ${currentMonth}...`);
             
+            // Get successful attempts from database
             const { data, error } = await this.db.supabase
                 .from('monthly_electricity_prices')
                 .select('plz')
@@ -95,11 +96,51 @@ class Simple1000Runner {
 
             if (error) throw error;
 
-            const existingPLZs = new Set(data.map(row => row.plz));
-            console.log(`📊 Found ${existingPLZs.size} cities already processed this month`);
-            return existingPLZs;
+            const successfulPLZs = new Set(data.map(row => row.plz));
+            console.log(`📊 Found ${successfulPLZs.size} cities with successful data this month`);
+            
+            // Also get failed attempts from error logs to avoid retrying
+            const failedPLZs = await this.getFailedPLZsFromLogs();
+            
+            // Combine both successful and failed (all attempted cities)
+            const allAttemptedPLZs = new Set([...successfulPLZs, ...failedPLZs]);
+            console.log(`📊 Total attempted cities: ${allAttemptedPLZs.size} (${successfulPLZs.size} successful, ${failedPLZs.size} failed)`);
+            
+            return allAttemptedPLZs;
         } catch (error) {
             console.warn('⚠️  Could not check existing PLZs:', error.message);
+            return new Set();
+        }
+    }
+
+    async getFailedPLZsFromLogs() {
+        try {
+            const logFile = `logs/scraper-errors-${new Date().toISOString().slice(0, 10)}.jsonl`;
+            
+            if (!require('fs').existsSync(logFile)) {
+                console.log(`📝 No error log file found: ${logFile}`);
+                return new Set();
+            }
+
+            const logContent = require('fs').readFileSync(logFile, 'utf8');
+            const logLines = logContent.trim().split('\n').filter(line => line.trim());
+            
+            const failedPLZs = new Set();
+            for (const line of logLines) {
+                try {
+                    const logEntry = JSON.parse(line);
+                    if (logEntry.plz) {
+                        failedPLZs.add(logEntry.plz);
+                    }
+                } catch (parseError) {
+                    // Skip invalid JSON lines
+                }
+            }
+            
+            console.log(`📝 Found ${failedPLZs.size} failed cities in error logs`);
+            return failedPLZs;
+        } catch (error) {
+            console.warn('⚠️  Could not read error logs:', error.message);
             return new Set();
         }
     }
