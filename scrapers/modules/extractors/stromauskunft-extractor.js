@@ -534,7 +534,27 @@ class StromauskunftExtractor extends IPriceExtractor {
             'vergleich', 'anbieter vergleichen', 'tarif vergleichen',
             'mehr anbieter', 'alle anbieter', 'weitere tarife'
         ];
-        return skipKeywords.some(keyword => rowText.toLowerCase().includes(keyword));
+        
+        // Skip rows with annual costs (EUR/Jahr) instead of per-kWh rates
+        const annualCostPatterns = [
+            'eur / jahr', 'euro / jahr', '€ / jahr',
+            'eur/jahr', 'euro/jahr', '€/jahr',
+            'eur pro jahr', 'euro pro jahr', '€ pro jahr'
+        ];
+        
+        const rowTextLower = rowText.toLowerCase();
+        
+        // Check for comparison keywords
+        if (skipKeywords.some(keyword => rowTextLower.includes(keyword))) {
+            return true;
+        }
+        
+        // Check for annual cost patterns
+        if (annualCostPatterns.some(pattern => rowTextLower.includes(pattern))) {
+            return true;
+        }
+        
+        return false;
     }
 
     extractFromTablesFirst($) {
