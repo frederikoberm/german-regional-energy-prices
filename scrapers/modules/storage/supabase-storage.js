@@ -5,6 +5,8 @@
 
 const { IDatabaseStorage } = require('../interfaces');
 const SupabaseClient = require('../../../database/supabase-client');
+const fs = require('fs');
+const path = require('path');
 
 class SupabaseStorage extends IDatabaseStorage {
     constructor(config) {
@@ -123,7 +125,7 @@ class SupabaseStorage extends IDatabaseStorage {
     }
 
     /**
-     * Flush pending errors batch to database
+     * Flush pending errors batch to local file
      */
     async flushPendingErrors(sessionId) {
         if (this.pendingErrors.length === 0) {
@@ -131,21 +133,33 @@ class SupabaseStorage extends IDatabaseStorage {
         }
 
         try {
-            console.log(`📝 Flushing error batch: ${this.pendingErrors.length} errors...`);
+            console.log(`📝 Flushing error batch: ${this.pendingErrors.length} errors to local file...`);
             
-            const results = [];
-            for (const errorData of this.pendingErrors) {
-                const result = await this.logError(sessionId, errorData);
-                results.push(result);
+            const logDir = path.join(process.cwd(), 'logs');
+            if (!fs.existsSync(logDir)) {
+                fs.mkdirSync(logDir, { recursive: true });
             }
+
+            const logFile = path.join(logDir, `scraper-errors-${new Date().toISOString().slice(0, 10)}.jsonl`);
+            const logEntries = this.pendingErrors.map(errorData => {
+                return JSON.stringify({
+                    timestamp: new Date().toISOString(),
+                    sessionId: sessionId,
+                    ...errorData
+                });
+            }).join('\n') + '\n';
+
+            fs.appendFileSync(logFile, logEntries);
             
+            const errorCount = this.pendingErrors.length;
             this.pendingErrors = []; // Clear the batch
-            console.log(`✅ Error batch flushed: ${results.length} errors logged`);
+            console.log(`✅ Error batch flushed: ${errorCount} errors logged to ${logFile}`);
             
-            return results;
+            return { logged: errorCount, file: logFile };
         } catch (error) {
-            console.error('❌ Error flushing pending errors:', error.message);
-            throw error;
+            console.error('❌ Error flushing pending errors to file:', error.message);
+            // Don't throw - avoid recursion
+            return { error: error.message };
         }
     }
 
@@ -420,9 +434,9 @@ class SupabaseStorage extends IDatabaseStorage {
                 await this.flushPendingBatch();
             }
             
-            // Flush pending errors
+            // Flush pending errors to file
             if (this.pendingErrors.length > 0) {
-                console.log(`📝 Flushing final errors batch: ${this.pendingErrors.length} errors`);
+                console.log(`📝 Flushing final errors batch: ${this.pendingErrors.length} errors to file`);
                 await this.flushPendingErrors(sessionId);
             }
             
@@ -442,7 +456,7 @@ class SupabaseStorage extends IDatabaseStorage {
     }
 
     /**
-     * Log a scraping error
+     * Log a scraping error to local file
      */
     async logError(sessionId, errorData) {
         try {
@@ -454,11 +468,9 @@ class SupabaseStorage extends IDatabaseStorage {
                 error_message: errorData.error_message || errorData.message,
                 source_url: errorData.source_url || errorData.url,
                 retry_count: errorData.retry_count || 0,
-                context_data: {
-                    timestamp: new Date().toISOString(),
-                    scraper_version: '2.0-modular',
-                    ...errorData.context_data
-                }
+                timestamp: new Date().toISOString(),
+                scraper_version: '2.0-modular',
+                context_data: errorData.context_data || {}
             };
 
             // Use batch error logging if enabled
@@ -476,19 +488,28 @@ class SupabaseStorage extends IDatabaseStorage {
                 
                 return { batched: true, pending: !shouldFlush };
             } else {
-                // Log immediately (original behavior)
-                const result = await this.db.logScrapingError(sessionId, errorRecord);
-                
-                if (this.config.shouldEnableDetailedLogging()) {
-                    console.log(`📝 Logged error for ${errorData.city_name || 'unknown city'}`);
+                // Log immediately to file
+                const logDir = path.join(process.cwd(), 'logs');
+                if (!fs.existsSync(logDir)) {
+                    fs.mkdirSync(logDir, { recursive: true });
                 }
 
-                return result;
+                const logFile = path.join(logDir, `scraper-errors-${new Date().toISOString().slice(0, 10)}.jsonl`);
+                const logEntry = JSON.stringify(errorRecord) + '\n';
+                
+                fs.appendFileSync(logFile, logEntry);
+                
+                if (this.config.shouldEnableDetailedLogging()) {
+                    console.log(`📝 Logged error for ${errorData.city_name || 'unknown city'} to ${logFile}`);
+                }
+
+                return { logged: true, file: logFile };
             }
 
         } catch (error) {
-            console.error('❌ Error logging scraping error:', error.message);
-            throw error;
+            console.error('❌ Error logging scraping error to file:', error.message);
+            // Don't throw - avoid any recursion
+            return { error: error.message };
         }
     }
 
