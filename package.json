@@ -1,18 +1,33 @@
 {
   "name": "energy_prices_comparison",
-  "version": "1.0.0",
-  "main": "energy_price_calculator.js",
+  "version": "2.0.0",
+  "main": "scrapers/modular-scraper.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "test:batch": "cd scrapers/examples && node basic-usage.js",
+    "test:umlauts": "cd scrapers/examples && node test-umlauts.js",
+    "test:500": "cd scrapers/examples && node test-500-real.js",
+    "db:examples": "node database/examples.js",
+    "db:test": "node -e \"const SupabaseClient = require('./database/supabase-client'); const db = new SupabaseClient(); db.testConnection();\"",
+    "scrape": "node scrapers/modular-scraper.js",
+    "scrape:test": "node scrapers/modular-scraper.js --test",
+    "scrape:force": "node scrapers/modular-scraper.js --force",
+    "scrape:status": "node scrapers/modular-scraper.js --status",
+    "scrape:reset": "node scrapers/modular-scraper.js --reset",
+    "scrape:validate": "node scrapers/modular-scraper.js --validate",
+    "scrape:help": "node scrapers/modular-scraper.js --help",
+    "scrape:legacy": "node scrapers/stromauskunft_scraper_batched.js"
   },
-  "keywords": [],
+  "keywords": ["electricity", "energy", "prices", "germany", "scraper", "supabase"],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "description": "German electricity price scraper with monthly data organization and Supabase storage",
   "dependencies": {
     "axios": "^1.10.0",
     "cheerio": "^1.1.0",
     "csv-parser": "^3.2.0",
-    "csv-writer": "^1.6.0"
+    "csv-writer": "^1.6.0",
+    "@supabase/supabase-js": "^2.45.4",
+    "dotenv": "^16.3.1"
   }
 }

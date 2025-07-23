@@ -120,11 +120,11 @@ class BatchedStromauskunftScraper {
     normalizeGermanText(text) {
         return text
             .replace(/ä/g, 'ae')
-            .replace(/Ä/g, 'Ae')
+            .replace(/Ä/g, 'ae')
             .replace(/ö/g, 'oe')
-            .replace(/Ö/g, 'Oe')
+            .replace(/Ö/g, 'oe')
             .replace(/ü/g, 'ue')
-            .replace(/Ü/g, 'Ue')
+            .replace(/Ü/g, 'ue')
             .replace(/ß/g, 'ss')
             .replace(/\s+/g, '-')
             .replace(/[^a-zA-Z0-9\-]/g, '')

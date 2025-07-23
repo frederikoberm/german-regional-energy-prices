@@ -58,6 +58,60 @@ npm install csv-parser csv-writer axios cheerio
 
 ---
 
+## 🧪 Testing Batch Optimizations
+
+### Quick Test with 500 Cities
+
+To verify the database optimizations are working correctly, you can run a test with the first 500 cities:
+
+```bash
+# Test batch optimizations
+npm run test:batch
+```
+
+### Expected Output
+
+The test will demonstrate the batch optimizations in action:
+
+**🔍 Bulk Duplicate Check:**
+```
+✅ Bulk duplicate cache initialized: 0 existing PLZs found
+```
+
+**📊 Batch Storage Events:**
+```
+📦 Added to batch: Hamburg (20095) - 50/100
+📦 Added to batch: München (80331) - 99/100  
+📊 Flushing batch: 100 results...
+✅ Batch flushed successfully: 100 records stored
+```
+
+**📈 Performance Results:**
+```
+📊 === BATCH OPTIMIZATION RESULTS ===
+⏱️  Total duration: 8.5 minutes
+
+🎯 Batch Status:
+   • Batch storage enabled: true
+   • Bulk duplicate check enabled: true
+   • Batch error logging enabled: true
+
+📈 Database Calls Reduced:
+   • Duplicate checks saved: 500 (instead of 500 individual queries)
+   • Result inserts batched: 300 (instead of 300 individual writes)
+   • Error inserts batched: 200 (instead of 200 individual writes)
+```
+
+### Performance Improvements
+
+With 500 cities, you should see:
+- **99% reduction** in database operations (1,000+ → ~10)
+- **Batch flushes** every 100 successful cities
+- **Single duplicate check** instead of 500 queries
+- **Clear logging** of optimization statistics
+
+---
+
 ## 🚀 Step-by-Step Process
 
 ### Step 1: Initialize Project
