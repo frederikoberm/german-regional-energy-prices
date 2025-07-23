@@ -58,6 +58,73 @@ npm install csv-parser csv-writer axios cheerio
 
 ---
 
+## 🌐 API Layer (Phase 3)
+
+### REST API for Price Data Access
+
+The system now includes a complete REST API for accessing the stored electricity price data:
+
+```bash
+# Start the API server
+npm run api:dev          # Development mode
+npm run api:start        # Production mode
+npm run api:test         # Test all endpoints
+```
+
+### 📍 **Core API Endpoints**
+
+**Price Data:**
+- `GET /api/v1/price/{plz}/{year}/{month}` - Get price for specific PLZ and month
+- `GET /api/v1/price/{plz}/latest` - Get most recent price for PLZ
+- `POST /api/v1/price/bulk` - Get prices for multiple PLZs
+
+**Analytics:**
+- `GET /api/v1/average/{year}/{month}` - National averages for month
+- `GET /api/v1/coverage/{year}/{month}` - Data coverage statistics
+
+**Metadata:**
+- `GET /api/v1/months` - List available data months
+- `GET /health` - API health check
+
+### 📄 **Example API Response**
+```json
+{
+  "success": true,
+  "message": "Price data retrieved successfully",
+  "data": {
+    "plz": "10115",
+    "city_name": "Berlin",
+    "year": 2025,
+    "month": 7,
+    "prices": {
+      "local_provider": 0.3652,
+      "green_energy": 0.4231,
+      "average": 0.3850
+    },
+    "metadata": {
+      "data_source": "ORIGINAL",
+      "is_outlier": false,
+      "coordinates": {
+        "latitude": 52.5200,
+        "longitude": 13.4050
+      }
+    }
+  }
+}
+```
+
+### 🔧 **API Features**
+- ✅ **Comprehensive validation** (PLZ format, date ranges)
+- ✅ **Error handling** with detailed error codes
+- ✅ **Rate limiting** (100 requests/15min in production)
+- ✅ **CORS support** for web applications
+- ✅ **Security headers** (Helmet.js)
+- ✅ **Request logging** and monitoring
+- ✅ **Bulk operations** (up to 100 PLZs per request)
+- ✅ **Consistent response format** across all endpoints
+
+---
+
 ## 🧪 Testing Batch Optimizations
 
 ### Quick Test with 500 Cities

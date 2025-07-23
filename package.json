@@ -16,18 +16,39 @@
     "scrape:reset": "node scrapers/modular-scraper.js --reset",
     "scrape:validate": "node scrapers/modular-scraper.js --validate",
     "scrape:help": "node scrapers/modular-scraper.js --help",
-    "scrape:legacy": "node scrapers/stromauskunft_scraper_batched.js"
+    "scrape:legacy": "node scrapers/stromauskunft_scraper_batched.js",
+    "api:start": "node api/server.js",
+    "api:dev": "NODE_ENV=development node api/server.js",
+    "api:prod": "NODE_ENV=production node api/server.js",
+    "api:test": "node api/test-api.js",
+    "deploy:vercel": "vercel --prod",
+    "deploy:preview": "vercel"
   },
-  "keywords": ["electricity", "energy", "prices", "germany", "scraper", "supabase"],
+  "keywords": [
+    "electricity",
+    "energy",
+    "prices",
+    "germany",
+    "scraper",
+    "supabase"
+  ],
   "author": "",
   "license": "ISC",
   "description": "German electricity price scraper with monthly data organization and Supabase storage",
   "dependencies": {
+    "@supabase/supabase-js": "^2.45.4",
     "axios": "^1.10.0",
     "cheerio": "^1.1.0",
+    "cors": "^2.8.5",
     "csv-parser": "^3.2.0",
     "csv-writer": "^1.6.0",
-    "@supabase/supabase-js": "^2.45.4",
-    "dotenv": "^16.3.1"
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.1.5",
+    "helmet": "^7.1.0",
+    "morgan": "^1.10.0"
+  },
+  "devDependencies": {
+    "vercel": "^44.5.3"
   }
 }
