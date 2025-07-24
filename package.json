@@ -1,29 +1,37 @@
 {
   "name": "energy_prices_comparison",
-  "version": "2.0.0",
-  "main": "scrapers/modular-scraper.js",
+  "version": "2.1.0",
+  "description": "Smart German electricity price scraper with city classification, multiple extraction strategies, and complete API integration",
+  "main": "scrapers/smart-single-scraper.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    
+    "// === SMART SCRAPER (RECOMMENDED) ===": "",
+    "scrape:smart": "node scrapers/smart-single-scraper.js",
+    "scrape": "npm run scrape:smart",
+    
+    "// === ALTERNATIVE SCRAPERS ===": "",
+    "scrape:1000-simple": "node run-1000-simple.js",
+    "scrape:1000": "node run-1000-cities.js",
+    "scrape:1000-new": "node run-1000-new-cities.js",
+    "scrape:legacy": "node scrapers/stromauskunft_scraper_batched.js",
+    
+    "// === TESTING ===": "",
     "test:batch": "cd scrapers/examples && node basic-usage.js",
     "test:umlauts": "cd scrapers/examples && node test-umlauts.js",
     "test:500": "cd scrapers/examples && node test-500-real.js",
+    
+    "// === DATABASE ===": "",
     "db:examples": "node database/examples.js",
     "db:test": "node -e \"const SupabaseClient = require('./database/supabase-client'); const db = new SupabaseClient(); db.testConnection();\"",
-    "scrape": "node scrapers/modular-scraper.js",
-    "scrape:test": "node scrapers/modular-scraper.js --test",
-    "scrape:force": "node scrapers/modular-scraper.js --force",
-    "scrape:status": "node scrapers/modular-scraper.js --status",
-    "scrape:reset": "node scrapers/modular-scraper.js --reset",
-    "scrape:validate": "node scrapers/modular-scraper.js --validate",
-    "scrape:help": "node scrapers/modular-scraper.js --help",
-    "scrape:legacy": "node scrapers/stromauskunft_scraper_batched.js",
-    "scrape:1000": "node run-1000-cities.js",
-    "scrape:1000-new": "node run-1000-new-cities.js",
-    "scrape:1000-simple": "node run-1000-simple.js",
+    
+    "// === API ===": "",
     "api:start": "node api/server.js",
     "api:dev": "NODE_ENV=development node api/server.js",
     "api:prod": "NODE_ENV=production node api/server.js",
     "api:test": "node api/test-api.js",
+    
+    "// === DEPLOYMENT ===": "",
     "deploy:vercel": "vercel --prod",
     "deploy:preview": "vercel"
   },
@@ -33,11 +41,13 @@
     "prices",
     "germany",
     "scraper",
-    "supabase"
+    "supabase",
+    "smart-classification",
+    "extraction-strategies",
+    "api"
   ],
   "author": "",
   "license": "ISC",
-  "description": "German electricity price scraper with monthly data organization and Supabase storage",
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",
     "axios": "^1.10.0",

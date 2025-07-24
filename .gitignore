@@ -31,7 +31,8 @@ Thumbs.db
 
 # Logs
 *.log
-logs/
+logs/*.jsonl
+scraping-*.log
 
 # Runtime data
 pids
@@ -58,3 +59,13 @@ pids
 .env.test.local
 .env.production.local 
 .vercel
+
+# Data files (too large for git)
+utils/Postleitzahlen Deutschland.csv
+complete_electricity_prices.csv
+electricity_prices_*.csv
+
+# State and temporary files
+scraper_state.json
+scraper_progress.csv
+test-*.js
