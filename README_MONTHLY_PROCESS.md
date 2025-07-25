@@ -119,17 +119,17 @@ node scripts/fill-missing-plz-with-neighbors.js
 - Loads coordinates from `utils/Postleitzahlen Deutschland.csv`
 - Finds closest successful PLZ for each failed one using geographic distance
 - Creates fallback entries marked as `data_source: 'FALLBACK'`
-- Tracks source PLZ and distance (typically 5-15km)
+- Tracks source PLZ and distance (typically 3-8km)
 
 **Expected output:**
 ```
-✅ Found 2,500+ unique failed PLZ codes from logs
+✅ Found 2,900+ unique failed PLZ codes from logs
 ✅ Loaded coordinates for 8,934 PLZ codes  
-✅ Loaded 5,000+ successful PLZ entries from database
-✅ Created 2,000+ fallback entries
+✅ Loaded 5,600+ successful PLZ entries from database
+✅ Created 2,500+ fallback entries
 📊 Distance statistics:
-   Average distance: 5.7 km
-   Maximum distance: 24.57 km
+   Average distance: 5.3 km
+   Maximum distance: 14 km
 ```
 
 ### 3.2 Verify Final Coverage
@@ -172,14 +172,14 @@ check();
 ## 🎯 Expected Final Results
 
 ### ✅ Success Metrics:
-- **Coverage:** 85-90% of all German PLZ codes (~7,500-8,000 entries)
+- **Coverage:** ~91% of all German PLZ codes (~8,200 entries)
 - **Data Quality:** <5% outliers, <2% missing oeko prices
-- **Accuracy:** Fallback entries within 10km of source on average
+- **Accuracy:** Fallback entries within 6km of source on average
 
 ### 📊 Typical Breakdown:
-- **ORIGINAL entries:** ~5,500 (successful scraping)
-- **FALLBACK entries:** ~2,500 (geographic neighbors)
-- **Total coverage:** ~8,000 PLZ codes
+- **ORIGINAL entries:** ~5,600 (successful scraping)
+- **FALLBACK entries:** ~2,600 (geographic neighbors)
+- **Total coverage:** ~8,200 PLZ codes
 
 ---
 

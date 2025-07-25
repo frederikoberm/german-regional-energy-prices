@@ -11,14 +11,14 @@ This project collects electricity pricing data for German cities and creates a c
 3. **Real-time data quality validation** with automatic outlier detection
 4. **Multiple extraction strategies** to handle different website layouts
 5. **Geographic interpolation** for missing data using nearest neighbor fallback
-6. **Complete dataset generation** with 100% PLZ coverage
+6. **Near-complete dataset generation** with 91% PLZ coverage (~8,200 out of 8,934 codes)
 
 ## 🚀 **Current Project Status**
 
 ### ✅ **LIVE & DEPLOYED**
 - **🌐 Production API**: https://regional-energy-prices-b8ywkg52d.vercel.app
 - **🗄️ Database**: Supabase PostgreSQL with real price data
-- **📊 Data Coverage**: 1000+ records for July 2025 (growing)
+- **📊 Data Coverage**: 8,200+ records for July 2025 (~91% of German PLZ codes)
 - **🔧 Architecture**: Smart Single-File Scraper + API + Database
 
 ### 📈 **Recent Achievements**
@@ -29,12 +29,19 @@ This project collects electricity pricing data for German cities and creates a c
 - ✅ **Resume Functionality** - automatically skips already processed cities
 - ✅ **Analysis Metadata** - tracks extraction methods and performance
 
-### 🔄 **Operational Workflow** 
-1. **Monthly Scraping**: Run locally with `npm run scrape:smart`
-2. **Auto-Resume**: System skips already processed cities automatically
-3. **Data Storage**: Direct integration with Supabase PostgreSQL
-4. **Quality Control**: Real-time outlier detection and validation
+### 🔄 **Complete Monthly Workflow** 
+1. **Monthly Scraping**: Run locally with `npm run scrape:smart` (~5,600 successful entries)
+2. **Data Quality Cleanup**: Fix outliers and missing data with analysis scripts
+3. **PLZ Coverage Completion**: Fill missing postal codes using geographic neighbors
+4. **Final Result**: ~8,200 entries covering 91% of German PLZ codes
 5. **API Access**: Live API serves data globally via Vercel
+
+**Required Scripts for Complete Process:**
+- `node scrapers/smart-single-scraper.js` - Primary data collection
+- `node scripts/analyze-price-issues.js` - Quality analysis  
+- `node scripts/fix-missing-oeko.js` - Fix missing eco prices
+- `node scripts/fix-high-prices.js` - Fix price outliers
+- `node scripts/fill-missing-plz-with-neighbors.js` - Geographic completion
 
 ## 🧠 **Smart Scraper Features**
 
@@ -113,32 +120,41 @@ cp .env.example .env
 ### **Step 2: Download PLZ Data**
 Download `Postleitzahlen Deutschland.csv` and place in `utils/` folder.
 
-### **Step 3: Run Smart Scraper**
+### **Step 3: Complete Monthly Data Collection**
 ```bash
-# Run the smart scraper (processes 1000 cities)
+# 1. Run the smart scraper (primary data collection)
 npm run scrape:smart
 
-# The scraper will:
-# - Check for already processed cities
-# - Classify each city by size
-# - Use appropriate extraction strategies
-# - Store results in Supabase
-# - Track detailed analytics
+# 2. Analyze and fix data quality issues
+node scripts/analyze-price-issues.js
+node scripts/fix-missing-oeko.js
+node scripts/fix-high-prices.js
+
+# 3. Fill missing PLZ codes with geographic neighbors
+node scripts/fill-missing-plz-with-neighbors.js
+
+# Result: ~8,200 entries covering 91% of German PLZ codes
 ```
 
 ### **Step 4: Monitor Progress**
 ```bash
-# Check session progress in database
-npm run db:examples
+# Check final coverage statistics
+node -e "
+const SupabaseClient = require('./database/supabase-client');
+async function check() {
+  const db = new SupabaseClient();
+  const { count } = await db.supabase
+    .from('monthly_electricity_prices')
+    .select('*', { count: 'exact', head: true })
+    .eq('data_month', '2025-07-01');
+  console.log('Total entries:', count, '('+ Math.round((count / 8934) * 100) + '% coverage)');
+  await db.close?.();
+}
+check();
+"
 
 # View error logs
 ls -la logs/
-```
-
-### **Step 5: Complete Dataset (Optional)**
-```bash
-# Fill in missing cities with geographic fallbacks
-node services/create_complete_electricity_data.js
 ```
 
 ---
@@ -150,6 +166,12 @@ node services/create_complete_electricity_data.js
 npm run scrape:smart          # Smart single-file scraper (RECOMMENDED)
 npm run scrape:1000-simple    # Simple scraper without classification
 npm run scrape:1000           # Legacy modular scraper
+
+# === DATA QUALITY & COMPLETION ===
+node scripts/analyze-price-issues.js           # Analyze outliers and quality issues
+node scripts/fix-missing-oeko.js              # Fix missing eco electricity prices
+node scripts/fix-high-prices.js               # Fix price outliers
+node scripts/fill-missing-plz-with-neighbors.js # Complete PLZ coverage with neighbors
 
 # === API ===
 npm run api:start             # Start API server locally
@@ -364,10 +386,10 @@ client.getExistingPLZsForMonth('2025-07-01').then(plzs =>
 
 ### 🎯 **CURRENT METRICS**
 - **📊 Processing Speed**: ~50-60 cities/minute with respectful delays
-- **🗄️ Database Records**: 1000+ price entries (July 2025)
+- **🗄️ Database Records**: 8,200+ price entries (July 2025) - 91% PLZ coverage
 - **🔒 Security**: Rate limited API with bypass authentication
 - **🌍 Global Availability**: 99.9% uptime via Vercel Edge Network
-- **📈 Success Rate**: ~70% overall (varies by city class)
+- **📈 Success Rate**: ~62% scraping + geographic completion for comprehensive coverage
 
 ---
 
