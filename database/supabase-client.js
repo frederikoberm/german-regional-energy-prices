@@ -127,15 +127,30 @@ class SupabaseClient {
      */
     async getExistingPLZsForMonth(month) {
         try {
-            const { data, error } = await this.supabase
-                .from('monthly_electricity_prices')
-                .select('plz')
-                .eq('data_month', month);
+            const allPLZs = new Set();
+            let hasMore = true;
+            let offset = 0;
+            const batchSize = 1000;
 
-            if (error) throw error;
+            // Paginate through all results to get complete set
+            while (hasMore) {
+                const { data, error } = await this.supabase
+                    .from('monthly_electricity_prices')
+                    .select('plz')
+                    .eq('data_month', month)
+                    .range(offset, offset + batchSize - 1);
 
-            // Return as Set for O(1) lookup performance
-            return new Set(data.map(row => row.plz));
+                if (error) throw error;
+
+                // Add PLZs to set
+                data.forEach(row => allPLZs.add(row.plz));
+
+                // Check if we got a full batch (meaning there might be more)
+                hasMore = data.length === batchSize;
+                offset += batchSize;
+            }
+
+            return allPLZs;
         } catch (error) {
             console.error('Error getting existing PLZs for month:', error.message);
             return new Set(); // Return empty set on error

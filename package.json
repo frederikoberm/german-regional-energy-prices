@@ -5,32 +5,41 @@
   "main": "scrapers/smart-single-scraper.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    
     "// === SMART SCRAPER (RECOMMENDED) ===": "",
     "scrape:smart": "node scrapers/smart-single-scraper.js",
-    "scrape": "npm run scrape:smart",
-    
+    "scrape:smart-tor": "node scrapers/rotating-proxy-scraper.js",
+    "scrape": "npm run scrape:smart-tor",
+    "scrape:proxy": "node scrapers/proxy-enhanced-scraper.js",
+    "scrape:rotating": "node scrapers/rotating-proxy-scraper.js",
     "// === ALTERNATIVE SCRAPERS ===": "",
     "scrape:1000-simple": "node run-1000-simple.js",
     "scrape:1000": "node run-1000-cities.js",
     "scrape:1000-new": "node run-1000-new-cities.js",
     "scrape:legacy": "node scrapers/stromauskunft_scraper_batched.js",
-    
     "// === TESTING ===": "",
     "test:batch": "cd scrapers/examples && node basic-usage.js",
     "test:umlauts": "cd scrapers/examples && node test-umlauts.js",
     "test:500": "cd scrapers/examples && node test-500-real.js",
-    
     "// === DATABASE ===": "",
     "db:examples": "node database/examples.js",
     "db:test": "node -e \"const SupabaseClient = require('./database/supabase-client'); const db = new SupabaseClient(); db.testConnection();\"",
-    
     "// === API ===": "",
     "api:start": "node api/server.js",
     "api:dev": "NODE_ENV=development node api/server.js",
     "api:prod": "NODE_ENV=production node api/server.js",
     "api:test": "node api/test-api.js",
-    
+    "// === DATA QUALITY CLEANUP ===": "",
+    "cleanup:analyze": "node scripts/run-data-cleanup.js --analyze-only",
+    "cleanup:test": "node scripts/run-data-cleanup.js --max-entries 10",
+    "cleanup:run": "node scripts/run-data-cleanup.js",
+    "cleanup:month": "node scripts/run-data-cleanup.js --month",
+    "analyze:issues": "node scripts/analyze-price-issues.js",
+    "analyze:cities": "node scripts/analyze-price-issues.js --big-cities",
+    "analyze:url": "node scripts/analyze-price-issues.js --url",
+    "fix:oeko": "node scripts/fix-missing-oeko.js",
+    "fix:oeko-test": "node scripts/fix-missing-oeko.js --max-entries 5",
+    "fix:high-prices": "node scripts/fix-high-prices.js",
+    "fix:high-prices-test": "node scripts/fix-high-prices.js --max-entries 5",
     "// === DEPLOYMENT ===": "",
     "deploy:vercel": "vercel --prod",
     "deploy:preview": "vercel"
@@ -59,7 +68,9 @@
     "express": "^4.18.2",
     "express-rate-limit": "^7.1.5",
     "helmet": "^7.1.0",
-    "morgan": "^1.10.0"
+    "https-proxy-agent": "^7.0.6",
+    "morgan": "^1.10.0",
+    "socks-proxy-agent": "^8.0.5"
   },
   "devDependencies": {
     "vercel": "^44.5.3"

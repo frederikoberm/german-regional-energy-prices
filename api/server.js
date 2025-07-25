@@ -47,9 +47,7 @@ app.use(helmet({
 
 // CORS configuration
 const corsOptions = {
-    origin: NODE_ENV === 'production' 
-        ? process.env.ALLOWED_ORIGINS?.split(',') || false
-        : true,
+    origin: true, // Allow all origins - you can restrict this later
     credentials: true,
     optionsSuccessStatus: 200
 };

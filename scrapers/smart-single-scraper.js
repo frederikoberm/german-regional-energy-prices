@@ -23,7 +23,7 @@ class SmartElectricityScraper {
     constructor() {
         this.db = new SupabaseClient();
         this.baseUrl = 'https://www.stromauskunft.de/de/stadt/stromanbieter-in-';
-        this.delay = parseInt(process.env.SCRAPER_DELAY) || 2000;
+        this.delay = parseInt(process.env.SCRAPER_DELAY) || 3500; // Average of 2-5s range
         this.targetCityCount = 1000;
         this.sessionId = null;
         
@@ -134,8 +134,17 @@ class SmartElectricityScraper {
         const allCities = await this.loadAllCities(csvFile);
         const existingPLZs = await this.getExistingPLZs();
         
-        const unprocessedCities = allCities.filter(city => !existingPLZs.has(city.plz));
+        // Also get previously attempted (failed) PLZs to avoid retrying
+        const attemptedPLZs = await this.getAttemptedPLZs();
+        
+        const unprocessedCities = allCities.filter(city => 
+            !existingPLZs.has(city.plz) && !attemptedPLZs.has(city.plz)
+        );
+        
         console.log(`🎯 Found ${unprocessedCities.length} unprocessed cities`);
+        if (attemptedPLZs.size > 0) {
+            console.log(`📝 Skipping ${attemptedPLZs.size} previously attempted (failed) cities`);
+        }
         
         const citiesToProcess = unprocessedCities.slice(0, this.targetCityCount);
         console.log(`📋 Selected ${citiesToProcess.length} cities for processing`);
@@ -199,6 +208,62 @@ class SmartElectricityScraper {
             return existingPLZs;
         } catch (error) {
             console.warn('⚠️  Could not check existing PLZs:', error.message);
+            return new Set();
+        }
+    }
+
+    async getAttemptedPLZs() {
+        try {
+            const logDir = 'logs';
+            const attemptedPLZs = new Set();
+            
+            // Check log files from the past 7 days
+            const daysToCheck = 7;
+            let totalFilesChecked = 0;
+            
+            for (let i = 0; i < daysToCheck; i++) {
+                const checkDate = new Date();
+                checkDate.setDate(checkDate.getDate() - i);
+                const dateStr = checkDate.toISOString().slice(0, 10);
+                const logFile = `${logDir}/scraper-errors-${dateStr}.jsonl`;
+                
+                if (!fs.existsSync(logFile)) {
+                    continue; // Skip if file doesn't exist
+                }
+                
+                totalFilesChecked++;
+                console.log(`🔍 Checking log file: ${logFile}`);
+                
+                try {
+                    const logContent = fs.readFileSync(logFile, 'utf8');
+                    const logLines = logContent.trim().split('\n').filter(line => line.trim());
+                    
+                    for (const line of logLines) {
+                        try {
+                            const logEntry = JSON.parse(line);
+                            if (logEntry.plz) {
+                                attemptedPLZs.add(logEntry.plz);
+                            }
+                        } catch (parseError) {
+                            // Skip malformed log lines
+                            continue;
+                        }
+                    }
+                } catch (fileError) {
+                    console.warn(`⚠️  Could not read log file ${logFile}:`, fileError.message);
+                    continue;
+                }
+            }
+            
+            if (attemptedPLZs.size > 0) {
+                console.log(`📝 Found ${attemptedPLZs.size} previously attempted (failed) cities from ${totalFilesChecked} log files`);
+            } else if (totalFilesChecked > 0) {
+                console.log(`📝 Checked ${totalFilesChecked} log files but found no previously attempted cities`);
+            }
+            
+            return attemptedPLZs;
+        } catch (error) {
+            console.warn('⚠️  Could not check attempted PLZs from logs:', error.message);
             return new Set();
         }
     }
@@ -822,8 +887,18 @@ class SmartElectricityScraper {
         }
     }
 
-    async sleep(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
+    async sleep(ms = null) {
+        // Use random delay between 2-5 seconds if no specific time provided
+        let delay;
+        if (ms !== null) {
+            delay = ms;
+        } else {
+            // Random delay between 2000ms (2s) and 5000ms (5s)
+            delay = Math.floor(Math.random() * (5000 - 2000 + 1)) + 2000;
+        }
+        
+        console.log(`    ⏳ Waiting ${(delay/1000).toFixed(1)}s (randomized human-like delay)...`);
+        return new Promise(resolve => setTimeout(resolve, delay));
     }
 
     // =====================================================
@@ -891,6 +966,36 @@ class SmartElectricityScraper {
         }
     }
 
+    /**
+     * Enhanced database insertion with duplicate handling
+     */
+    async insertPriceDataSafely(priceData) {
+        try {
+            // First check if data already exists to avoid duplicate key errors
+            const currentMonth = new Date().toISOString().slice(0, 7) + '-01';
+            const exists = await this.db.dataExists(currentMonth, priceData.plz);
+            
+            if (exists) {
+                console.log(`    ⏭️  Skipping ${priceData.city_name} - data already exists`);
+                return { skipped: true };
+            }
+            
+            // Insert if doesn't exist
+            await this.db.insertPriceData(priceData);
+            return { inserted: true };
+            
+        } catch (error) {
+            // Handle duplicate key error gracefully
+            if (error.message.includes('duplicate key value violates unique constraint')) {
+                console.log(`    ⏭️  Skipping ${priceData.city_name} - duplicate detected during insertion`);
+                return { skipped: true, reason: 'duplicate_key' };
+            }
+            
+            // Re-throw other errors
+            throw error;
+        }
+    }
+
     async processCities(cities) {
         console.log('\n🚀 Starting city processing...\n');
 
@@ -900,10 +1005,16 @@ class SmartElectricityScraper {
             // Process the city
             const result = await this.scrapeCityWithClassification(city);
             
-            // Store result if successful
+            // Store result if successful using enhanced duplicate handling
             if (result) {
                 try {
-                    await this.db.insertPriceData(result);
+                    const insertResult = await this.insertPriceDataSafely(result);
+                    
+                    if (insertResult.inserted) {
+                        console.log(`    ✅ Data stored for ${city.cityName}`);
+                    }
+                    // If skipped, message already logged in insertPriceDataSafely
+                    
                 } catch (dbError) {
                     console.error(`❌ Database error for ${city.cityName}:`, dbError.message);
                 }
@@ -916,10 +1027,9 @@ class SmartElectricityScraper {
                 console.log(`   Success rate: ${(this.stats.successful / this.stats.totalProcessed * 100).toFixed(1)}%\n`);
             }
 
-            // Respectful delay
+            // Respectful randomized delay
             if (i < cities.length - 1) {
-                console.log(`    ⏳ Waiting ${this.delay/1000}s...`);
-                await this.sleep(this.delay);
+                await this.sleep(); // No parameter = random 3-10s delay
             }
         }
     }
@@ -949,14 +1059,14 @@ class SmartElectricityScraper {
     showScrapingPlan(cityCount) {
         console.log('\n📋 SMART SCRAPER PLAN:');
         console.log(`   • Cities to process: ${cityCount}`);
-        console.log(`   • Delay: ${this.delay}ms (respectful)`);
+        console.log(`   • Delay: 3-10 seconds randomized (human-like)`);
         console.log(`   • City classification: ENABLED`);
         console.log(`   • Multiple extraction strategies: ENABLED`);
         console.log(`   • Analysis metadata: ENABLED`);
         console.log(`   • Database storage: Supabase PostgreSQL`);
         console.log(`   • Session tracking: ${this.sessionId}`);
         console.log(`   • Resume capability: ENABLED`);
-        console.log(`   • Estimated time: ${Math.ceil(cityCount * this.delay / 1000 / 60)} minutes`);
+        console.log(`   • Estimated time: ${Math.ceil(cityCount * 6.5 / 60)} minutes (avg 6.5s delay)`);
     }
 
     printFinalStats() {
